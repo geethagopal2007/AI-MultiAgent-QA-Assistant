@@ -137,3 +137,52 @@ def generate_api_test_scenarios(endpoint_name):
             ),
         },
     ]
+    
+def generate_test_report(test_results):
+    """
+    Generate a summary report from API test results.
+
+    Each result should contain:
+        test_id, status, and optionally message.
+    """
+    if not isinstance(test_results, list):
+        raise TypeError("test_results must be a list")
+
+    normalized_results = []
+
+    for result in test_results:
+        if not isinstance(result, dict):
+            raise TypeError("Each test result must be a dictionary")
+
+        test_id = result.get("test_id")
+        status = result.get("status")
+
+        if not isinstance(test_id, str) or not test_id.strip():
+            raise ValueError("Each result must have a valid test_id")
+
+        if status not in ("PASS", "FAIL"):
+            raise ValueError("status must be PASS or FAIL")
+
+        message = result.get("message", "")
+        if not isinstance(message, str):
+            raise TypeError("message must be a string")
+
+        normalized_results.append({
+            "test_id": test_id,
+            "status": status,
+            "message": message,
+        })
+
+    passed = sum(
+        1 for result in normalized_results
+        if result["status"] == "PASS"
+    )
+    failed = len(normalized_results) - passed
+
+    return {
+        "total": len(normalized_results),
+        "passed": passed,
+        "failed": failed,
+        "results": normalized_results,
+    }
+
