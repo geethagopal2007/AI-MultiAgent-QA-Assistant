@@ -1,6 +1,6 @@
 
 """
-API Test Assistant - Version 4.1
+API Test Assistant - Version 4.2
 
 Rule-based API validation helpers.
 No API key or third-party packages required.
@@ -12,29 +12,84 @@ def validate_api_response(status_code, expected_status=200):
     return status_code == expected_status
 
 
+def _get_nested_value(response_data, field_path):
+    """Retrieve a nested value using a dot-separated path."""
+    if not isinstance(response_data, dict):
+        return False, None
+
+    if not isinstance(field_path, str) or not field_path.strip():
+        return False, None
+
+    value = response_data
+
+    for key in field_path.split("."):
+        if not isinstance(value, dict) or key not in value:
+            return False, None
+        value = value[key]
+
+    return True, value
+
+
 def validate_json_fields(response_data, required_fields, expected_values=None):
     """
-    Validate required JSON fields and, optionally, their expected values.
-
-    expected_values example:
-        {"status": "success", "id": 10}
+    Validate required JSON fields and optional expected values.
+    Supports nested paths such as 'user.id'.
     """
     if not isinstance(response_data, dict):
         return False
 
-    if not all(field in response_data for field in required_fields):
+    if not isinstance(required_fields, (list, tuple)):
         return False
+
+    for field in required_fields:
+        found, _ = _get_nested_value(response_data, field)
+        if not found:
+            return False
 
     if expected_values is not None:
         if not isinstance(expected_values, dict):
             return False
 
         for field, expected_value in expected_values.items():
-            if field not in response_data:
+            found, actual_value = _get_nested_value(response_data, field)
+
+            if not found or actual_value != expected_value:
                 return False
 
-            if response_data[field] != expected_value:
+    return True
+
+
+def validate_json_field_types(response_data, expected_types):
+    """
+    Validate JSON field types.
+
+    Example:
+        {"user.id": int, "user.name": str, "user.active": bool}
+    """
+    if not isinstance(response_data, dict):
+        return False
+
+    if not isinstance(expected_types, dict):
+        return False
+
+    for field_path, expected_type in expected_types.items():
+        if not isinstance(expected_type, type):
+            return False
+
+        found, value = _get_nested_value(response_data, field_path)
+
+        if not found:
+            return False
+
+        # Avoid accepting True/False as integers.
+        if expected_type is int:
+            if type(value) is not int:
                 return False
+        elif expected_type is bool:
+            if type(value) is not bool:
+                return False
+        elif not isinstance(value, expected_type):
+            return False
 
     return True
 
@@ -62,12 +117,16 @@ def generate_api_test_scenarios(endpoint_name):
         {
             "test_id": "API01",
             "scenario": f"Verify successful response from {endpoint_name}",
-            "expected_result": "HTTP status matches the expected success status.",
+            "expected_result": (
+                "HTTP status matches the expected success status."
+            ),
         },
         {
             "test_id": "API02",
             "scenario": f"Verify required fields and values in {endpoint_name}",
-            "expected_result": "Required fields exist and expected values match.",
+            "expected_result": (
+                "Required fields exist and expected values match."
+            ),
         },
         {
             "test_id": "API03",
