@@ -58,6 +58,5 @@ class TestStructuredTestCases(unittest.TestCase):
         cases = generate_structured_test_cases("   ")
         self.assertEqual(cases, [])
 
-
 if __name__ == "__main__":
     unittest.main()
