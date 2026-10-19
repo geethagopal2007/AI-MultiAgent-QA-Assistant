@@ -1,9 +1,23 @@
 
 # AI Multi-Agent QA Assistant
 
-A Python-based QA assistant prototype that generates software test cases from requirements. Version 3 uses rule-based generation and does not require an API key or external AI service.
+A Python-based QA assistant prototype for rule-based structured test-case generation, automated unit testing, and continuous integration.
 
 ![Python QA Tests](https://github.com/geethagopal2007/AI-MultiAgent-QA-Assistant/actions/workflows/python-tests.yml/badge.svg)
+
+## Project Status
+
+**Current version:** Version 3 — Rule-Based QA Assistant
+
+| Feature | Status |
+|---|---|
+| Basic test-case generation | Completed |
+| Structured test-case generation | Completed |
+| Automated unit tests | 8 tests passing |
+| GitHub Actions CI | Configured |
+| Real AI model integration | Planned |
+| API testing assistance | Planned |
+| Test automation script generation | Planned |
 
 ## Features
 
@@ -11,13 +25,15 @@ A Python-based QA assistant prototype that generates software test cases from re
 - Support legacy string-based test-case generation.
 - Generate structured test cases with test IDs, scenarios, and expected results.
 - Handle empty and whitespace-only requirements.
-- Run automated unit tests using Python's built-in `unittest`.
-- Automatically execute tests through GitHub Actions.
+- Run automated tests using Python's built-in `unittest` framework.
+- Automatically execute unit tests using GitHub Actions.
+- Run locally without an API key or third-party Python packages.
 
 ## Technology Stack
 
 - Python 3
 - `unittest`
+- Git and GitHub
 - GitHub Actions
 
 ## Project Structure
@@ -38,59 +54,91 @@ AI-MultiAgent-QA-Assistant/
 - No third-party Python packages required
 - No API key required
 
-## Run the Assistant
+## Getting Started
 
-Clone the repository:
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/geethagopal2007/AI-MultiAgent-QA-Assistant.git
 cd AI-MultiAgent-QA-Assistant
 ```
 
-Run the application:
+### 2. Run the assistant
 
 ```bash
 python qa_assistant.py
 ```
 
-Enter a software requirement when prompted. The assistant generates five structured test cases.
+Enter a software requirement when prompted.
 
-Example requirement:
+Example:
 
 ```text
 User login with email and password
 ```
 
-## Run Automated Tests
+## Sample Output
 
-Run the test suite:
+For a valid requirement, the assistant generates five structured test cases.
+
+Example format:
+
+```text
+Test ID: TC01
+Scenario: Verify the main flow
+Expected Result: The requirement is processed successfully with valid input.
+--------------------------------------------------
+Test ID: TC02
+Scenario: Verify invalid input handling
+Expected Result: Invalid input is rejected and a clear validation message is shown.
+--------------------------------------------------
+```
+
+The actual expected results are generic examples and should be reviewed against the application's requirements.
+
+## Automated Testing
+
+Run the unit tests locally:
 
 ```bash
 python -m unittest -v test_qa_assistant.py
 ```
 
-The current test suite contains eight unit tests covering legacy and structured test-case generation.
+The current test suite contains eight unit tests covering:
 
-## Continuous Integration
+- Empty requirements
+- Whitespace-only requirements
+- Valid requirement handling
+- Legacy string-based output
+- Structured output fields
 
-GitHub Actions automatically runs unit tests when code is pushed to `main`, when a pull request targets `main`, or when the workflow is triggered manually.
+### Continuous Integration
 
-View the [Python QA Tests workflow](https://github.com/geethagopal2007/AI-MultiAgent-QA-Assistant/actions/workflows/python-tests.yml).
+GitHub Actions automatically runs the tests when code is pushed to `main`, when a pull request targets `main`, or when the workflow is triggered manually.
+
+**Latest verified result:** 8 unit tests passed.
+
+[View GitHub Actions](https://github.com/geethagopal2007/AI-MultiAgent-QA-Assistant/actions)
 
 ## Current Limitations
 
-- Test cases are generated using predefined rules.
-- No real AI model or autonomous multi-agent system is integrated yet.
-- Expected results are generic and must be validated against actual software requirements.
-- Generated test cases are suggestions and require QA review.
+- Test cases are generated using predefined rules rather than a real AI model.
+- The project does not yet implement autonomous multi-agent behaviour.
+- Expected results are generic and need QA review.
+- The current version does not execute the generated test cases against a real application.
 
-## Future Enhancements
+## Roadmap
 
-- Integrate an AI model for requirement analysis.
-- Add API testing assistance.
-- Generate automation scripts.
-- Introduce test prioritization and reporting.
-- Explore multi-agent QA workflows.
+- [ ] Add more unit tests for invalid and boundary inputs.
+- [ ] Improve requirement-based test-case generation.
+- [ ] Explore API testing assistance.
+- [ ] Generate automation scripts.
+- [ ] Evaluate AI model integration options.
+- [ ] Explore multi-agent QA workflows.
+
+## About This Project
+
+This project explores how Python and automated testing can support software quality assurance. It is a learning and portfolio project that will evolve through additional testing capabilities and future AI integration.
 
 ## Author
 
