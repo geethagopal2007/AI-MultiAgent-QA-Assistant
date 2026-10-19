@@ -1,4 +1,19 @@
+import csv
+import json
+import tempfile
+from pathlib import Path
 
+from api_test_assistant import (
+    validate_api_response,
+    validate_json_fields,
+    validate_json_field_types,
+    validate_error_status,
+    generate_api_test_scenarios,
+    generate_test_report,
+    generate_html_report,
+    export_test_report_csv,
+    export_test_report_json,
+)
 import unittest
 
 from api_test_assistant import (
@@ -154,6 +169,96 @@ class TestGenerateApiTestScenarios(unittest.TestCase):
                     {"test_id", "scenario", "expected_result"},
                 )
 
+
+class TestApiTestReports(unittest.TestCase):
+
+    def setUp(self):
+        self.results = [
+            {
+                "test_id": "API01",
+                "status": "PASS",
+                "message": "HTTP 200 received",
+            },
+            {
+                "test_id": "API02",
+                "status": "FAIL",
+                "message": "Email field missing",
+            },
+        ]
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+
+    def test_report_summary_counts(self):
+        report = generate_test_report(self.results)
+
+        self.assertEqual(report["total"], 2)
+        self.assertEqual(report["passed"], 1)
+        self.assertEqual(report["failed"], 1)
+        self.assertEqual(len(report["results"]), 2)
+
+    def test_empty_report(self):
+        report = generate_test_report([])
+
+        self.assertEqual(report["total"], 0)
+        self.assertEqual(report["passed"], 0)
+        self.assertEqual(report["failed"], 0)
+
+    def test_invalid_status_raises_error(self):
+        with self.assertRaises(ValueError):
+            generate_test_report([
+                {"test_id": "API01", "status": "UNKNOWN"}
+            ])
+
+    def test_html_report_is_created(self):
+        output = Path(self.temp_dir.name) / "report.html"
+
+        returned_path = generate_html_report(
+            self.results, str(output)
+        )
+
+        self.assertTrue(Path(returned_path).exists())
+
+        content = output.read_text(encoding="utf-8")
+        self.assertIn("API Test Report", content)
+        self.assertIn("Total tests:", content)
+        self.assertIn("Email field missing", content)
+        self.assertIn("PASS", content)
+        self.assertIn("FAIL", content)
+
+    def test_csv_report_is_created(self):
+        output = Path(self.temp_dir.name) / "report.csv"
+
+        returned_path = export_test_report_csv(
+            self.results, str(output)
+        )
+
+        self.assertTrue(Path(returned_path).exists())
+
+        with output.open(
+            "r", newline="", encoding="utf-8-sig"
+        ) as file:
+            rows = list(csv.DictReader(file))
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["status"], "PASS")
+        self.assertEqual(rows[1]["status"], "FAIL")
+
+    def test_json_report_is_created(self):
+        output = Path(self.temp_dir.name) / "report.json"
+
+        returned_path = export_test_report_json(
+            self.results, str(output)
+        )
+
+        self.assertTrue(Path(returned_path).exists())
+
+        with output.open(encoding="utf-8") as file:
+            report = json.load(file)
+
+        self.assertEqual(report["total"], 2)
+        self.assertEqual(report["passed"], 1)
+        self.assertEqual(report["failed"], 1)
+        self.assertEqual(len(report["results"]), 2)
 
 if __name__ == "__main__":
     unittest.main()
