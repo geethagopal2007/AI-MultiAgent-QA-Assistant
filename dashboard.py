@@ -471,12 +471,33 @@ with tab_ai:
 
                 st.caption(f"Generation mode: {generation_mode}")
 
-            except requests.RequestException as exc:
-                st.error(
-                    "OpenAI API request failed. Check your API key, "
-                    "API billing/usage, network and model access."
+                        except requests.RequestException as exc:
+                # Free fallback when OpenAI API is unavailable
+                cases = generate_template_test_cases(
+                    endpoint=ai_endpoint.strip(),
+                    method=ai_method,
+                    description=ai_description.strip(),
+                    required_fields=ai_fields,
                 )
-                st.caption(str(exc))
+
+                # Match the number selected by the user
+                cases = cases[:int(ai_count)]
+
+                st.session_state.generated_test_cases = cases
+
+                st.warning(
+                    "OpenAI API is unavailable or has no available "
+                    "credits. Generated free template-based test cases."
+                )
+                st.caption(
+                    "Fallback reason: "
+                    f"{type(exc).__name__}. "
+                    "These are template-generated cases, not AI-generated."
+                )
+                st.caption(
+                    f"Generation mode: Free template fallback | "
+                    f"{len(cases)} test cases"
+                )
             except (ValueError, KeyError, json.JSONDecodeError) as exc:
                 st.error(f"Could not process the generated test cases: {exc}")
             except Exception as exc:
