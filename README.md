@@ -1,51 +1,99 @@
-# 🤖 AI Multi-Agent QA Assistant
 
-### AI-Powered Software Quality Assurance Using Python
+# AI Multi-Agent QA Assistant
 
-An AI-focused project exploring how multi-agent approaches can assist software quality assurance activities, including test scenario generation, test planning, and test analysis.
+A Python-based QA assistant prototype that generates software test cases from requirements. Version 3 uses rule-based generation and does not require an API key or external AI service.
 
-## 🎯 Project Objectives
+![Python QA Tests](https://github.com/geethagopal2007/AI-MultiAgent-QA-Assistant/actions/workflows/python-tests.yml/badge.svg)
 
-- Explore AI-assisted software testing workflows.
-- Organize QA tasks into specialized agent roles.
-- Generate candidate test scenarios from application requirements.
-- Investigate ways to improve test coverage and reduce repetitive work.
+## Features
 
-## ✨ Planned Features
+- Generate test cases from software requirements.
+- Support legacy string-based test-case generation.
+- Generate structured test cases with test IDs, scenarios, and expected results.
+- Handle empty and whitespace-only requirements.
+- Run automated unit tests using Python's built-in `unittest`.
+- Automatically execute tests through GitHub Actions.
 
-- Requirement analysis and test scenario suggestions
-- Test case generation
-- Positive and negative test scenario coverage
-- QA review and test result summaries
-- Structured output for further validation
+## Technology Stack
 
-## 🛠️ Technology Stack
+- Python 3
+- `unittest`
+- GitHub Actions
 
-- **Language:** Python
-- **AI/ML:** To be documented according to the implemented model or framework
-- **Testing:** Test scenario design and validation
+## Project Structure
 
-## 🚧 Project Status
+```text
+AI-MultiAgent-QA-Assistant/
+├── qa_assistant.py
+├── test_qa_assistant.py
+├── README.md
+└── .github/
+    └── workflows/
+        └── python-tests.yml
+```
 
-This project is under development. Features will be documented as they are implemented and tested.
+## Requirements
 
-## ▶️ Getting Started
+- Python 3.10 or later
+- No third-party Python packages required
+- No API key required
 
-The installation instructions and usage examples will be added after the project dependencies and executable workflow are finalized.
+## Run the Assistant
 
-## 🧪 Testing
+Clone the repository:
 
-Test cases, sample inputs, expected outputs, and validation results will be documented as the implementation progresses.
+```bash
+git clone https://github.com/geethagopal2007/AI-MultiAgent-QA-Assistant.git
+cd AI-MultiAgent-QA-Assistant
+```
 
-## 👩‍💻 Author
+Run the application:
 
-**Geetha A.**
+```bash
+python qa_assistant.py
+```
 
-Software QA Professional | API Testing | Automation | AI & Data Science
+Enter a software requirement when prompted. The assistant generates five structured test cases.
 
-[GitHub Profile](https://github.com/geethagopal2007)
+Example requirement:
 
----
+```text
+User login with email and password
+```
 
-*Exploring how AI can support software quality engineering.*
+## Run Automated Tests
 
+Run the test suite:
+
+```bash
+python -m unittest -v test_qa_assistant.py
+```
+
+The current test suite contains eight unit tests covering legacy and structured test-case generation.
+
+## Continuous Integration
+
+GitHub Actions automatically runs unit tests when code is pushed to `main`, when a pull request targets `main`, or when the workflow is triggered manually.
+
+View the [Python QA Tests workflow](https://github.com/geethagopal2007/AI-MultiAgent-QA-Assistant/actions/workflows/python-tests.yml).
+
+## Current Limitations
+
+- Test cases are generated using predefined rules.
+- No real AI model or autonomous multi-agent system is integrated yet.
+- Expected results are generic and must be validated against actual software requirements.
+- Generated test cases are suggestions and require QA review.
+
+## Future Enhancements
+
+- Integrate an AI model for requirement analysis.
+- Add API testing assistance.
+- Generate automation scripts.
+- Introduce test prioritization and reporting.
+- Explore multi-agent QA workflows.
+
+## Author
+
+Geetha A.
+
+Software QA | Manual Testing | API Testing | Python | AI-Assisted QA
