@@ -9,6 +9,8 @@ import streamlit as st
 from live_api_tester import run_live_api_test
 
 
+# -------------------- PAGE CONFIG --------------------
+
 st.set_page_config(
     page_title="AI Multi-Agent QA Assistant",
     page_icon="🧪",
@@ -28,10 +30,10 @@ if "generated_test_cases" not in st.session_state:
     st.session_state.generated_test_cases = []
 
 
-# -------------------- HELPERS --------------------
+# -------------------- API KEY --------------------
 
 def get_api_key():
-    """Read the key from Streamlit Secrets or environment variables."""
+    """Read OpenAI key from Streamlit Secrets or environment."""
     try:
         key = st.secrets.get("OPENAI_API_KEY", "")
         if key:
@@ -42,17 +44,25 @@ def get_api_key():
     return os.environ.get("OPENAI_API_KEY", "")
 
 
+# -------------------- FREE TEST CASE GENERATOR --------------------
+
 def generate_template_test_cases(
     endpoint,
     method,
     description,
     required_fields,
+    count=7,
 ):
-    """Generate basic test cases without an AI API key."""
+    """
+    Generate test cases locally without an external AI API.
+    These are template-based QA cases, not AI-generated cases.
+    """
 
-    return [
+    fields = ", ".join(required_fields) or "expected response fields"
+    method = method.upper()
+
+    templates = [
         {
-            "test_case_id": "TC001",
             "scenario": "Valid request",
             "test_type": "Positive",
             "steps": f"Send a valid {method} request to {endpoint}.",
@@ -62,80 +72,188 @@ def generate_template_test_cases(
             "priority": "High",
         },
         {
-            "test_case_id": "TC002",
             "scenario": "Invalid endpoint",
             "test_type": "Negative",
-            "steps": "Send a request to an invalid or unknown endpoint.",
+            "steps": (
+                "Send a request to an invalid or unknown endpoint."
+            ),
             "expected_result": (
                 "The API returns an appropriate error response."
             ),
             "priority": "High",
         },
         {
-            "test_case_id": "TC003",
-            "scenario": "Invalid HTTP method",
+            "scenario": "Unsupported HTTP method",
             "test_type": "Negative",
             "steps": (
-                f"Try an unsupported HTTP method against {endpoint}."
+                f"Send an unsupported HTTP method to {endpoint}."
             ),
             "expected_result": (
-                "The API rejects the unsupported method appropriately."
+                "The API rejects the method appropriately."
             ),
             "priority": "Medium",
         },
         {
-            "test_case_id": "TC004",
-            "scenario": "Response schema validation",
+            "scenario": "Required response fields",
             "test_type": "Validation",
-            "steps": (
-                "Validate the JSON response for required fields: "
-                + (", ".join(required_fields) or "Define expected fields")
-            ),
+            "steps": f"Check that the response contains: {fields}.",
             "expected_result": (
-                "The response contains the required fields "
-                "with appropriate data types."
+                "All specified fields are present and have "
+                "appropriate values and data types."
             ),
             "priority": "High",
         },
         {
-            "test_case_id": "TC005",
             "scenario": "Response time",
             "test_type": "Performance",
-            "steps": "Measure response time under normal test conditions.",
+            "steps": (
+                "Send the request and measure its response time."
+            ),
             "expected_result": (
                 "The response time meets the agreed performance SLA."
             ),
             "priority": "Medium",
         },
         {
-            "test_case_id": "TC006",
             "scenario": "Empty or missing input",
             "test_type": "Boundary",
             "steps": (
-                "Submit a request with missing or empty required inputs, "
-                "where applicable."
+                "Where applicable, submit the request with required "
+                "inputs missing or empty."
             ),
             "expected_result": (
-                "The API handles missing inputs with appropriate "
-                "validation errors."
+                "The API validates missing inputs appropriately."
             ),
             "priority": "Medium",
         },
         {
-            "test_case_id": "TC007",
-            "scenario": "Authentication and authorization",
+            "scenario": "Authentication check",
             "test_type": "Security",
             "steps": (
-                "For a protected endpoint, send a request without valid "
-                "authentication credentials."
+                "For a protected endpoint, send a request without "
+                "valid authentication credentials."
             ),
             "expected_result": (
-                "Protected data is not disclosed to unauthorized users."
+                "Unauthorized requests are rejected and protected "
+                "data is not disclosed."
+            ),
+            "priority": "High",
+        },
+        {
+            "scenario": "Malformed JSON",
+            "test_type": "Negative",
+            "steps": (
+                "For an endpoint accepting JSON, submit malformed "
+                "JSON in the request body."
+            ),
+            "expected_result": (
+                "The API handles malformed JSON with an appropriate "
+                "validation error."
+            ),
+            "priority": "Medium",
+        },
+        {
+            "scenario": "Content-Type validation",
+            "test_type": "Validation",
+            "steps": (
+                "Where applicable, send a request with an incorrect "
+                "or missing Content-Type header."
+            ),
+            "expected_result": (
+                "The API accepts supported content types and handles "
+                "unsupported types appropriately."
+            ),
+            "priority": "Medium",
+        },
+        {
+            "scenario": "Response content type",
+            "test_type": "Validation",
+            "steps": "Inspect the response Content-Type header.",
+            "expected_result": (
+                "The response content type matches the documented "
+                "API response format."
+            ),
+            "priority": "Medium",
+        },
+        {
+            "scenario": "Repeated request",
+            "test_type": "Reliability",
+            "steps": (
+                "Repeat the same valid request under normal conditions."
+            ),
+            "expected_result": (
+                "The API behaves consistently for equivalent requests."
+            ),
+            "priority": "Medium",
+        },
+        {
+            "scenario": "HTTP status validation",
+            "test_type": "Validation",
+            "steps": (
+                "Check the returned HTTP status against the "
+                "expected status for the request."
+            ),
+            "expected_result": (
+                "The HTTP status matches the documented API behaviour."
+            ),
+            "priority": "High",
+        },
+        {
+            "scenario": "Response structure",
+            "test_type": "Validation",
+            "steps": (
+                "Inspect the response structure and data types."
+            ),
+            "expected_result": (
+                "The response follows the documented schema."
+            ),
+            "priority": "High",
+        },
+        {
+            "scenario": "Unexpected query parameters",
+            "test_type": "Negative",
+            "steps": (
+                "Where applicable, send an unexpected or invalid "
+                "query parameter."
+            ),
+            "expected_result": (
+                "The API handles unsupported parameters consistently "
+                "with its specification."
+            ),
+            "priority": "Low",
+        },
+        {
+            "scenario": "Business requirement review",
+            "test_type": "Functional",
+            "steps": (
+                "Compare the response with the described requirement: "
+                f"{description or 'No description provided'}"
+            ),
+            "expected_result": (
+                "The response satisfies the stated requirement. "
+                "Confirm any undocumented assumptions with the API owner."
             ),
             "priority": "High",
         },
     ]
 
+    cases = []
+    for index, template in enumerate(templates[:count], start=1):
+        cases.append(
+            {
+                "test_case_id": f"TC{index:03d}",
+                "scenario": template["scenario"],
+                "test_type": template["test_type"],
+                "steps": template["steps"],
+                "expected_result": template["expected_result"],
+                "priority": template["priority"],
+            }
+        )
+
+    return cases
+
+
+# -------------------- AI TEST CASE GENERATOR --------------------
 
 def generate_ai_test_cases(
     endpoint,
@@ -144,28 +262,38 @@ def generate_ai_test_cases(
     required_fields,
     count,
 ):
-    """Generate test cases using OpenAI, with a template fallback."""
+    """
+    Try OpenAI first. If no API key is configured, use free templates.
+    API/network errors are handled by the calling section.
+    """
 
     api_key = get_api_key()
 
     if not api_key:
-        return generate_template_test_cases(
-            endpoint, method, description, required_fields
-        ), "Template mode (no OpenAI API key configured)"
+        return (
+            generate_template_test_cases(
+                endpoint,
+                method,
+                description,
+                required_fields,
+                count,
+            ),
+            "Free template fallback",
+        )
 
     prompt = f"""
 Generate exactly {count} practical API test cases.
 
-API endpoint: {endpoint}
+Endpoint: {endpoint}
 HTTP method: {method}
-API description: {description or "Not provided"}
+Description: {description or "Not provided"}
 Required JSON fields: {", ".join(required_fields) or "Not specified"}
 
 Include a useful mix of positive, negative, boundary, validation,
 security and performance scenarios where applicable.
 
 Do not assume undocumented API behaviour. State assumptions clearly.
-Do not execute any test. Only generate test case definitions.
+Do not execute any tests. Only generate test case definitions.
 
 Return valid JSON in this format:
 {{
@@ -195,7 +323,7 @@ Return valid JSON in this format:
                     "role": "system",
                     "content": (
                         "You are an experienced API QA engineer. "
-                        "Return only valid JSON matching the requested schema."
+                        "Return only valid JSON matching the schema."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -207,17 +335,18 @@ Return valid JSON in this format:
     )
 
     response.raise_for_status()
+
     payload = response.json()
     content = payload["choices"][0]["message"]["content"]
     parsed = json.loads(content)
-    cases = parsed.get("test_cases", [])
+    raw_cases = parsed.get("test_cases", [])
 
-    if not isinstance(cases, list) or not cases:
+    if not isinstance(raw_cases, list) or not raw_cases:
         raise ValueError("The AI returned no valid test cases.")
 
     clean_cases = []
 
-    for index, case in enumerate(cases[:count], start=1):
+    for index, case in enumerate(raw_cases[:count], start=1):
         if not isinstance(case, dict):
             continue
 
@@ -237,14 +366,14 @@ Return valid JSON in this format:
         )
 
     if not clean_cases:
-        raise ValueError("The AI response did not contain usable test cases.")
+        raise ValueError("No usable test cases were returned.")
 
     return clean_cases, "OpenAI AI generation"
 
 
-def build_html_report(history):
-    """Build an HTML report with escaped dynamic content."""
+# -------------------- HTML REPORT --------------------
 
+def build_html_report(history):
     rows = []
 
     for item in history:
@@ -364,7 +493,6 @@ with tab_api:
                     )
 
                 result = dict(result)
-
                 result.setdefault(
                     "test_id",
                     f"API_{len(st.session_state.api_test_history) + 1:03d}",
@@ -392,14 +520,19 @@ with tab_api:
                 st.error(f"Unable to run API test: {exc}")
 
 
-# -------------------- AI TEST CASE GENERATOR --------------------
+# -------------------- TEST CASE GENERATOR --------------------
 
 with tab_ai:
-    st.subheader("🤖 AI-Based API Test Case Generator")
+    st.subheader("🤖 API Test Case Generator")
 
     st.write(
-        "Generate API test cases from an endpoint, method, "
+        "Generate test cases from an endpoint, HTTP method, "
         "description and expected response fields."
+    )
+
+    st.info(
+        "Free fallback is available without OpenAI API credits. "
+        "Fallback cases use predefined QA templates, not an AI model."
     )
 
     ai_endpoint = st.text_input(
@@ -448,61 +581,54 @@ with tab_ai:
             st.error("Enter a valid HTTP or HTTPS endpoint.")
         else:
             try:
-                with st.spinner("Generating API test cases..."):
-                    cases, generation_mode = generate_ai_test_cases(
-                        endpoint=ai_endpoint.strip(),
-                        method=ai_method,
-                        description=ai_description.strip(),
-                        required_fields=ai_fields,
-                        count=int(ai_count),
-                    )
+                with st.spinner("Generating test cases..."):
+                    try:
+                        cases, generation_mode = generate_ai_test_cases(
+                            endpoint=ai_endpoint.strip(),
+                            method=ai_method,
+                            description=ai_description.strip(),
+                            required_fields=ai_fields,
+                            count=int(ai_count),
+                        )
+
+                    except Exception as api_error:
+                        # Any API failure falls back to free templates.
+                        cases = generate_template_test_cases(
+                            endpoint=ai_endpoint.strip(),
+                            method=ai_method,
+                            description=ai_description.strip(),
+                            required_fields=ai_fields,
+                            count=int(ai_count),
+                        )
+                        generation_mode = "Free template fallback"
+                        fallback_reason = (
+                            f"{type(api_error).__name__}: {api_error}"
+                        )
+                    else:
+                        fallback_reason = None
 
                 st.session_state.generated_test_cases = cases
 
                 if generation_mode == "OpenAI AI generation":
                     st.success(
-                        f"Generated {len(cases)} test cases using AI."
+                        f"Generated {len(cases)} test cases using OpenAI."
                     )
                 else:
-                    st.info(
-                        "OpenAI API key is not configured. "
-                        "Showing template-based test cases instead."
+                    st.warning(
+                        f"Generated {len(cases)} free template-based "
+                        "test cases. OpenAI was not used."
                     )
+                    if fallback_reason:
+                        st.caption(
+                            "Fallback reason: " + fallback_reason
+                        )
 
                 st.caption(f"Generation mode: {generation_mode}")
 
-                        except requests.RequestException as exc:
-                # Free fallback when OpenAI API is unavailable
-                cases = generate_template_test_cases(
-                    endpoint=ai_endpoint.strip(),
-                    method=ai_method,
-                    description=ai_description.strip(),
-                    required_fields=ai_fields,
-                )
-
-                # Match the number selected by the user
-                cases = cases[:int(ai_count)]
-
-                st.session_state.generated_test_cases = cases
-
-                st.warning(
-                    "OpenAI API is unavailable or has no available "
-                    "credits. Generated free template-based test cases."
-                )
-                st.caption(
-                    "Fallback reason: "
-                    f"{type(exc).__name__}. "
-                    "These are template-generated cases, not AI-generated."
-                )
-                st.caption(
-                    f"Generation mode: Free template fallback | "
-                    f"{len(cases)} test cases"
-                )
-            except (ValueError, KeyError, json.JSONDecodeError) as exc:
-                st.error(f"Could not process the generated test cases: {exc}")
             except Exception as exc:
                 st.error(f"Test case generation failed: {exc}")
 
+    # Show generated cases and download buttons.
     if st.session_state.generated_test_cases:
         st.subheader("Generated Test Cases")
 
@@ -531,8 +657,8 @@ with tab_ai:
         )
 
         st.caption(
-            "Generated cases are test definitions only. "
-            "They have not been executed against the API."
+            "These are test definitions only. They have not been "
+            "executed against the API."
         )
 
 
