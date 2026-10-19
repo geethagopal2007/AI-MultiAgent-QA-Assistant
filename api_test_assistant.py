@@ -4,7 +4,6 @@ API Test Assistant - Version 4
 Basic API response validation without external packages.
 """
 
-
 def validate_api_response(status_code, expected_status=200):
     """Check whether the HTTP status matches the expected status."""
     return status_code == expected_status
