@@ -1,83 +1,52 @@
 
-"""
-AI Multi-Agent QA Assistant
-Version 3 - Rule-based structured test generation
+import unittest
 
-No API key or external packages required.
-"""
-
-
-def generate_test_cases(requirement):
-    """Generate five traditional QA test-case descriptions."""
-    if not isinstance(requirement, str) or not requirement.strip():
-        return []
-
-    requirement = requirement.strip()
-
-    return [
-        f"TC01 - Verify the main flow: {requirement}",
-        f"TC02 - Verify invalid input handling for: {requirement}",
-        f"TC03 - Verify required-field validation for: {requirement}",
-        f"TC04 - Verify boundary conditions for: {requirement}",
-        f"TC05 - Verify error handling for: {requirement}",
-    ]
+from qa_assistant import (
+    generate_test_cases,
+    generate_structured_test_cases,
+)
 
 
-def generate_structured_test_cases(requirement):
-    """Generate structured QA test cases."""
-    if not isinstance(requirement, str) or not requirement.strip():
-        return []
+class TestGenerateTestCases(unittest.TestCase):
 
-    scenarios = [
-        (
-            "Verify the main flow",
-            "The requirement is processed successfully with valid input.",
-        ),
-        (
-            "Verify invalid input handling",
-            "Invalid input is rejected and a clear validation message is shown.",
-        ),
-        (
-            "Verify required-field validation",
-            "Missing required fields are identified and submission is prevented.",
-        ),
-        (
-            "Verify boundary conditions",
-            "Values at and beyond the permitted boundaries are handled correctly.",
-        ),
-        (
-            "Verify error handling",
-            "Errors are handled gracefully without exposing sensitive information.",
-        ),
-    ]
+    def test_empty_requirement_returns_empty_list(self):
+        self.assertEqual(generate_test_cases(""), [])
 
-    return [
-        {
-            "test_id": f"TC{index:02d}",
-            "scenario": scenario,
-            "expected_result": expected_result,
-        }
-        for index, (scenario, expected_result) in enumerate(scenarios, start=1)
-    ]
+    def test_whitespace_requirement_returns_empty_list(self):
+        self.assertEqual(generate_test_cases("   "), [])
+
+    def test_valid_requirement_returns_five_cases(self):
+        cases = generate_test_cases("User login")
+        self.assertEqual(len(cases), 5)
+
+    def test_legacy_cases_are_strings(self):
+        cases = generate_test_cases("User login")
+        self.assertTrue(all(isinstance(case, str) for case in cases))
 
 
-def main():
-    """Run the QA assistant interactively."""
-    print("AI Multi-Agent QA Assistant - Version 3")
-    requirement = input("Enter the software requirement: ").strip()
+class TestGenerateStructuredTestCases(unittest.TestCase):
 
-    if not requirement:
-        print("Error: Requirement cannot be empty.")
-        return
+    def test_empty_requirement_returns_empty_list(self):
+        self.assertEqual(generate_structured_test_cases(""), [])
 
-    print("\nGenerated structured test cases:\n")
+    def test_whitespace_requirement_returns_empty_list(self):
+        self.assertEqual(generate_structured_test_cases("   "), [])
 
-    for case in generate_structured_test_cases(requirement):
-        print(f"Test ID: {case['test_id']}")
-        print(f"Scenario: {case['scenario']}")
-        print(f"Expected Result: {case['expected_result']}")
-        print("-" * 50)
+    def test_valid_requirement_returns_five_cases(self):
+        cases = generate_structured_test_cases("User login")
+        self.assertEqual(len(cases), 5)
+
+    def test_structured_cases_have_required_fields(self):
+        cases = generate_structured_test_cases("User login")
+
+        self.assertEqual(
+            set(cases[0].keys()),
+            {"test_id", "scenario", "expected_result"},
+        )
+        self.assertEqual(cases[0]["test_id"], "TC01")
+        self.assertTrue(cases[0]["scenario"])
+        self.assertTrue(cases[0]["expected_result"])
 
 
 if __name__ == "__main__":
-    main()
+    unittest.main()
