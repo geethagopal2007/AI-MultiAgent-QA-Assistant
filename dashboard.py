@@ -6,7 +6,10 @@ import requests
 import pandas as pd
 import streamlit as st
 
-from live_api_tester import run_live_api_test
+from live_api_tester import (
+    run_live_api_test,
+    run_api_test_case,
+)
 
 
 # -------------------- PAGE CONFIG --------------------
@@ -655,6 +658,106 @@ with tab_ai:
             file_name="ai_generated_test_cases.json",
             mime="application/json",
         )
+
+        
+        st.divider()
+        st.subheader("▶️ Execute Test Cases")
+
+        st.warning(
+            "This first version runs each generated case against "
+            "the same endpoint using the selected HTTP method and "
+            "validates HTTP status and required response fields. "
+            "It does not yet implement scenario-specific negative tests."
+        )
+
+        if st.button("▶️ Run All Test Cases", type="primary"):
+            execution_results = []
+
+            fields_to_check = [
+                field.strip()
+                for field in ai_fields_text.split(",")
+                if field.strip()
+            ]
+
+            with st.spinner("Executing API test cases..."):
+                progress = st.progress(0)
+
+                for index, case in enumerate(
+                    st.session_state.generated_test_cases
+                ):
+                    result = run_api_test_case(
+                        test_case=case,
+                        url=ai_endpoint.strip(),
+                        method=ai_method,
+                        required_fields=fields_to_check,
+                        timeout=float(timeout),
+                        expected_status=int(expected_status),
+                    )
+
+                    execution_results.append(result)
+                    progress.progress(
+                        (index + 1)
+                        / len(st.session_state.generated_test_cases)
+                    )
+
+            st.session_state["execution_results"] = execution_results
+
+            passed = sum(
+                item["status"] == "PASS"
+                for item in execution_results
+            )
+            failed = len(execution_results) - passed
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Total Executed", len(execution_results))
+            col2.metric("PASS", passed)
+            col3.metric("FAIL", failed)
+
+        if st.session_state.get("execution_results"):
+            st.subheader("Execution Results")
+
+            results_df = pd.DataFrame(
+                st.session_state["execution_results"]
+            )
+
+            display_columns = [
+                column
+                for column in [
+                    "test_id",
+                    "scenario",
+                    "status",
+                    "status_code",
+                    "response_time_ms",
+                    "message",
+                ]
+                if column in results_df.columns
+            ]
+
+            st.dataframe(
+                results_df[display_columns],
+                use_container_width=True,
+            )
+
+            st.download_button(
+                "⬇️ Download Execution Results (CSV)",
+                data=results_df.to_csv(
+                    index=False
+                ).encode("utf-8-sig"),
+                file_name="api_execution_results.csv",
+                mime="text/csv",
+            )
+
+            st.download_button(
+                "⬇️ Download Execution Results (JSON)",
+                data=json.dumps(
+                    st.session_state["execution_results"],
+                    indent=2,
+                    ensure_ascii=False,
+                    default=str,
+                ).encode("utf-8"),
+                file_name="api_execution_results.json",
+                mime="application/json",
+            )
 
         st.caption(
             "These are test definitions only. They have not been "
