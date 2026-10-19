@@ -12,7 +12,9 @@ from live_api_tester import (
 )
 
 
-# -------------------- PAGE CONFIG --------------------
+# =========================================================
+# PAGE CONFIGURATION
+# =========================================================
 
 st.set_page_config(
     page_title="AI Multi-Agent QA Assistant",
@@ -21,22 +23,34 @@ st.set_page_config(
 )
 
 st.title("🧪 AI Multi-Agent QA Assistant")
-st.caption("Live API Testing • AI Test Case Generation • Test Reports")
+st.caption(
+    "Live API Testing • Test Case Generation • "
+    "Automated Execution • Test Reports"
+)
 
 
-# -------------------- SESSION STATE --------------------
+# =========================================================
+# SESSION STATE
+# =========================================================
 
-if "api_test_history" not in st.session_state:
-    st.session_state.api_test_history = []
+DEFAULT_STATE = {
+    "api_test_history": [],
+    "generated_test_cases": [],
+    "execution_results": [],
+    "generation_mode": "",
+}
 
-if "generated_test_cases" not in st.session_state:
-    st.session_state.generated_test_cases = []
+for key, default_value in DEFAULT_STATE.items():
+    if key not in st.session_state:
+        st.session_state[key] = default_value
 
 
-# -------------------- API KEY --------------------
+# =========================================================
+# API KEY
+# =========================================================
 
 def get_api_key():
-    """Read OpenAI key from Streamlit Secrets or environment."""
+    """Read the OpenAI API key from Streamlit Secrets or environment."""
     try:
         key = st.secrets.get("OPENAI_API_KEY", "")
         if key:
@@ -47,7 +61,9 @@ def get_api_key():
     return os.environ.get("OPENAI_API_KEY", "")
 
 
-# -------------------- FREE TEST CASE GENERATOR --------------------
+# =========================================================
+# FREE TEMPLATE TEST CASE GENERATOR
+# =========================================================
 
 def generate_template_test_cases(
     endpoint,
@@ -56,12 +72,9 @@ def generate_template_test_cases(
     required_fields,
     count=7,
 ):
-    """
-    Generate test cases locally without an external AI API.
-    These are template-based QA cases, not AI-generated cases.
-    """
+    """Generate test case definitions without an AI API."""
 
-    fields = ", ".join(required_fields) or "expected response fields"
+    fields = ", ".join(required_fields) or "response fields"
     method = method.upper()
 
     templates = [
@@ -69,194 +82,123 @@ def generate_template_test_cases(
             "scenario": "Valid request",
             "test_type": "Positive",
             "steps": f"Send a valid {method} request to {endpoint}.",
-            "expected_result": (
-                "The API returns the expected successful response."
-            ),
+            "expected_result": "The API returns the expected successful response.",
             "priority": "High",
         },
         {
             "scenario": "Invalid endpoint",
             "test_type": "Negative",
-            "steps": (
-                "Send a request to an invalid or unknown endpoint."
-            ),
-            "expected_result": (
-                "The API returns an appropriate error response."
-            ),
+            "steps": "Request an invalid or unknown endpoint.",
+            "expected_result": "The server returns an appropriate error response.",
             "priority": "High",
         },
         {
             "scenario": "Unsupported HTTP method",
             "test_type": "Negative",
-            "steps": (
-                f"Send an unsupported HTTP method to {endpoint}."
-            ),
-            "expected_result": (
-                "The API rejects the method appropriately."
-            ),
+            "steps": f"Try an unsupported HTTP method on {endpoint}.",
+            "expected_result": "The API handles the unsupported method appropriately.",
             "priority": "Medium",
         },
         {
             "scenario": "Required response fields",
             "test_type": "Validation",
-            "steps": f"Check that the response contains: {fields}.",
-            "expected_result": (
-                "All specified fields are present and have "
-                "appropriate values and data types."
-            ),
+            "steps": f"Check the response for these fields: {fields}.",
+            "expected_result": "All required fields are present.",
             "priority": "High",
         },
         {
             "scenario": "Response time",
             "test_type": "Performance",
-            "steps": (
-                "Send the request and measure its response time."
-            ),
-            "expected_result": (
-                "The response time meets the agreed performance SLA."
-            ),
-            "priority": "Medium",
-        },
-        {
-            "scenario": "Empty or missing input",
-            "test_type": "Boundary",
-            "steps": (
-                "Where applicable, submit the request with required "
-                "inputs missing or empty."
-            ),
-            "expected_result": (
-                "The API validates missing inputs appropriately."
-            ),
+            "steps": "Send a request and measure its response time.",
+            "expected_result": "Response time meets the agreed performance target.",
             "priority": "Medium",
         },
         {
             "scenario": "Authentication check",
             "test_type": "Security",
-            "steps": (
-                "For a protected endpoint, send a request without "
-                "valid authentication credentials."
-            ),
-            "expected_result": (
-                "Unauthorized requests are rejected and protected "
-                "data is not disclosed."
-            ),
-            "priority": "High",
-        },
-        {
-            "scenario": "Malformed JSON",
-            "test_type": "Negative",
-            "steps": (
-                "For an endpoint accepting JSON, submit malformed "
-                "JSON in the request body."
-            ),
-            "expected_result": (
-                "The API handles malformed JSON with an appropriate "
-                "validation error."
-            ),
-            "priority": "Medium",
-        },
-        {
-            "scenario": "Content-Type validation",
-            "test_type": "Validation",
-            "steps": (
-                "Where applicable, send a request with an incorrect "
-                "or missing Content-Type header."
-            ),
-            "expected_result": (
-                "The API accepts supported content types and handles "
-                "unsupported types appropriately."
-            ),
-            "priority": "Medium",
-        },
-        {
-            "scenario": "Response content type",
-            "test_type": "Validation",
-            "steps": "Inspect the response Content-Type header.",
-            "expected_result": (
-                "The response content type matches the documented "
-                "API response format."
-            ),
-            "priority": "Medium",
-        },
-        {
-            "scenario": "Repeated request",
-            "test_type": "Reliability",
-            "steps": (
-                "Repeat the same valid request under normal conditions."
-            ),
-            "expected_result": (
-                "The API behaves consistently for equivalent requests."
-            ),
-            "priority": "Medium",
-        },
-        {
-            "scenario": "HTTP status validation",
-            "test_type": "Validation",
-            "steps": (
-                "Check the returned HTTP status against the "
-                "expected status for the request."
-            ),
-            "expected_result": (
-                "The HTTP status matches the documented API behaviour."
-            ),
+            "steps": "For a protected endpoint, test a request without valid credentials.",
+            "expected_result": "Unauthorised access is rejected.",
             "priority": "High",
         },
         {
             "scenario": "Response structure",
             "test_type": "Validation",
-            "steps": (
-                "Inspect the response structure and data types."
-            ),
-            "expected_result": (
-                "The response follows the documented schema."
-            ),
+            "steps": "Inspect the response structure and data types.",
+            "expected_result": "The response matches the documented API schema.",
             "priority": "High",
         },
         {
-            "scenario": "Unexpected query parameters",
+            "scenario": "Malformed JSON",
             "test_type": "Negative",
-            "steps": (
-                "Where applicable, send an unexpected or invalid "
-                "query parameter."
-            ),
-            "expected_result": (
-                "The API handles unsupported parameters consistently "
-                "with its specification."
-            ),
+            "steps": "Where applicable, submit malformed JSON to the API.",
+            "expected_result": "The API handles invalid JSON appropriately.",
+            "priority": "Medium",
+        },
+        {
+            "scenario": "Repeated request",
+            "test_type": "Reliability",
+            "steps": "Repeat the same request under normal conditions.",
+            "expected_result": "Equivalent requests behave consistently.",
+            "priority": "Medium",
+        },
+        {
+            "scenario": "HTTP status validation",
+            "test_type": "Validation",
+            "steps": "Compare the returned HTTP status with the expected status.",
+            "expected_result": "The status matches the documented behaviour.",
+            "priority": "High",
+        },
+        {
+            "scenario": "Content type validation",
+            "test_type": "Validation",
+            "steps": "Inspect the response Content-Type header.",
+            "expected_result": "The response uses the expected content type.",
+            "priority": "Medium",
+        },
+        {
+            "scenario": "Boundary input",
+            "test_type": "Boundary",
+            "steps": "Where applicable, test empty, missing or boundary input values.",
+            "expected_result": "Input validation follows the API specification.",
+            "priority": "Medium",
+        },
+        {
+            "scenario": "Unexpected query parameter",
+            "test_type": "Negative",
+            "steps": "Where applicable, send an unsupported query parameter.",
+            "expected_result": "The API handles the parameter consistently.",
             "priority": "Low",
         },
         {
             "scenario": "Business requirement review",
             "test_type": "Functional",
-            "steps": (
-                "Compare the response with the described requirement: "
-                f"{description or 'No description provided'}"
-            ),
-            "expected_result": (
-                "The response satisfies the stated requirement. "
-                "Confirm any undocumented assumptions with the API owner."
-            ),
+            "steps": f"Compare the response with this requirement: {description}",
+            "expected_result": "The response satisfies the documented requirement.",
+            "priority": "High",
+        },
+        {
+            "scenario": "Response field values",
+            "test_type": "Validation",
+            "steps": f"Inspect the values and types of: {fields}.",
+            "expected_result": "Field values and data types are valid.",
             "priority": "High",
         },
     ]
 
     cases = []
+
     for index, template in enumerate(templates[:count], start=1):
-        cases.append(
-            {
-                "test_case_id": f"TC{index:03d}",
-                "scenario": template["scenario"],
-                "test_type": template["test_type"],
-                "steps": template["steps"],
-                "expected_result": template["expected_result"],
-                "priority": template["priority"],
-            }
-        )
+        cases.append({
+            "test_case_id": f"TC{index:03d}",
+            **template,
+        })
 
     return cases
 
 
-# -------------------- AI TEST CASE GENERATOR --------------------
+# =========================================================
+# AI TEST CASE GENERATOR WITH FREE FALLBACK
+# =========================================================
 
 def generate_ai_test_cases(
     endpoint,
@@ -265,10 +207,7 @@ def generate_ai_test_cases(
     required_fields,
     count,
 ):
-    """
-    Try OpenAI first. If no API key is configured, use free templates.
-    API/network errors are handled by the calling section.
-    """
+    """Try OpenAI first; use local templates if no key is configured."""
 
     api_key = get_api_key()
 
@@ -285,28 +224,25 @@ def generate_ai_test_cases(
         )
 
     prompt = f"""
-Generate exactly {count} practical API test cases.
+Generate exactly {count} API test case definitions.
 
 Endpoint: {endpoint}
 HTTP method: {method}
-Description: {description or "Not provided"}
-Required JSON fields: {", ".join(required_fields) or "Not specified"}
+Requirements: {description}
+Expected response fields: {", ".join(required_fields)}
 
-Include a useful mix of positive, negative, boundary, validation,
-security and performance scenarios where applicable.
-
-Do not assume undocumented API behaviour. State assumptions clearly.
-Do not execute any tests. Only generate test case definitions.
+Include positive, negative, validation, boundary and security scenarios
+where appropriate. Do not assume undocumented behaviour.
 
 Return valid JSON in this format:
 {{
   "test_cases": [
     {{
       "test_case_id": "TC001",
-      "scenario": "Scenario name",
+      "scenario": "Valid request",
       "test_type": "Positive",
       "steps": "Test steps",
-      "expected_result": "Expected behaviour",
+      "expected_result": "Expected result",
       "priority": "High"
     }}
   ]
@@ -325,8 +261,8 @@ Return valid JSON in this format:
                 {
                     "role": "system",
                     "content": (
-                        "You are an experienced API QA engineer. "
-                        "Return only valid JSON matching the schema."
+                        "You are an API QA engineer. "
+                        "Return only valid JSON."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -345,60 +281,57 @@ Return valid JSON in this format:
     raw_cases = parsed.get("test_cases", [])
 
     if not isinstance(raw_cases, list) or not raw_cases:
-        raise ValueError("The AI returned no valid test cases.")
+        raise ValueError("The AI returned no test cases.")
 
-    clean_cases = []
+    cases = []
 
     for index, case in enumerate(raw_cases[:count], start=1):
         if not isinstance(case, dict):
             continue
 
-        clean_cases.append(
-            {
-                "test_case_id": str(
-                    case.get("test_case_id", f"TC{index:03d}")
-                ),
-                "scenario": str(case.get("scenario", "")),
-                "test_type": str(case.get("test_type", "")),
-                "steps": str(case.get("steps", "")),
-                "expected_result": str(
-                    case.get("expected_result", "")
-                ),
-                "priority": str(case.get("priority", "Medium")),
-            }
-        )
+        cases.append({
+            "test_case_id": str(
+                case.get("test_case_id", f"TC{index:03d}")
+            ),
+            "scenario": str(case.get("scenario", "")),
+            "test_type": str(case.get("test_type", "")),
+            "steps": str(case.get("steps", "")),
+            "expected_result": str(case.get("expected_result", "")),
+            "priority": str(case.get("priority", "Medium")),
+        })
 
-    if not clean_cases:
+    if not cases:
         raise ValueError("No usable test cases were returned.")
 
-    return clean_cases, "OpenAI AI generation"
+    return cases, "OpenAI AI generation"
 
 
-# -------------------- HTML REPORT --------------------
+# =========================================================
+# HTML REPORT
+# =========================================================
 
-def build_html_report(history):
+def build_html_report(results):
     rows = []
 
-    for item in history:
+    for item in results:
         rows.append(
             "<tr>"
             f"<td>{html.escape(str(item.get('test_id', '')))}</td>"
+            f"<td>{html.escape(str(item.get('scenario', '')))}</td>"
             f"<td>{html.escape(str(item.get('status', '')))}</td>"
+            f"<td>{html.escape(str(item.get('status_code', '')))}</td>"
             f"<td>{html.escape(str(item.get('message', '')))}</td>"
-            f"<td>{html.escape(str(item.get('url', '')))}</td>"
             "</tr>"
         )
 
-    passed = sum(
-        item.get("status") == "PASS" for item in history
-    )
-    failed = len(history) - passed
+    passed = sum(item.get("status") == "PASS" for item in results)
+    failed = len(results) - passed
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>API Test Report</title>
+<title>API Test Execution Report</title>
 <style>
 body {{ font-family: Arial, sans-serif; margin: 24px; }}
 table {{ border-collapse: collapse; width: 100%; }}
@@ -407,22 +340,26 @@ th {{ background: #17365d; color: white; }}
 </style>
 </head>
 <body>
-<h1>API Test Report</h1>
-<p>Total: {len(history)} | Passed: {passed} | Failed: {failed}</p>
+<h1>API Test Execution Report</h1>
+<p>Total: {len(results)} | Passed: {passed} | Failed: {failed}</p>
 <table>
 <thead>
-<tr><th>Test ID</th><th>Status</th><th>Message</th><th>URL</th></tr>
+<tr>
+<th>Test ID</th><th>Scenario</th><th>Status</th>
+<th>HTTP Status</th><th>Message</th>
+</tr>
 </thead>
 <tbody>
 {"".join(rows)}
 </tbody>
 </table>
 </body>
-</html>
-"""
+</html>"""
 
 
-# -------------------- SIDEBAR --------------------
+# =========================================================
+# SIDEBAR CONFIGURATION
+# =========================================================
 
 with st.sidebar:
     st.header("⚙️ Test Configuration")
@@ -442,18 +379,20 @@ with st.sidebar:
     )
 
 
-# -------------------- TABS --------------------
+# =========================================================
+# APPLICATION TABS
+# =========================================================
 
-tab_api, tab_ai, tab_history = st.tabs(
-    [
-        "🚀 Live API Testing",
-        "🤖 AI Test Case Generator",
-        "📊 Test History & Reports",
-    ]
-)
+tab_api, tab_ai, tab_history = st.tabs([
+    "🚀 Live API Testing",
+    "🤖 AI Test Case Generator",
+    "📊 Test History & Reports",
+])
 
 
-# -------------------- LIVE API TESTING --------------------
+# =========================================================
+# TAB 1: LIVE API TESTING
+# =========================================================
 
 with tab_api:
     st.subheader("Run a Live API Test")
@@ -462,7 +401,6 @@ with tab_api:
         "API endpoint URL",
         value="https://jsonplaceholder.typicode.com/users/1",
         key="api_endpoint",
-        help="Enter a valid HTTP or HTTPS API endpoint.",
     )
 
     required_fields_text = st.text_input(
@@ -502,9 +440,7 @@ with tab_api:
                 )
                 result.setdefault("url", url.strip())
                 result.setdefault("status", "FAIL")
-                result.setdefault(
-                    "message", "No result message returned."
-                )
+                result.setdefault("message", "No result message returned.")
                 result.setdefault("status_code", None)
                 result.setdefault("response_time_ms", None)
 
@@ -517,13 +453,13 @@ with tab_api:
 
                 st.json(result)
 
-            except (TypeError, ValueError) as exc:
-                st.error(f"Invalid input or test result: {exc}")
             except Exception as exc:
                 st.error(f"Unable to run API test: {exc}")
 
 
-# -------------------- TEST CASE GENERATOR --------------------
+# =========================================================
+# TAB 2: GENERATE AND EXECUTE TEST CASES
+# =========================================================
 
 with tab_ai:
     st.subheader("🤖 API Test Case Generator")
@@ -534,8 +470,8 @@ with tab_ai:
     )
 
     st.info(
-        "Free fallback is available without OpenAI API credits. "
-        "Fallback cases use predefined QA templates, not an AI model."
+        "Free template fallback works without OpenAI API credits. "
+        "Template cases are not generated by an AI model."
     )
 
     ai_endpoint = st.text_input(
@@ -554,7 +490,6 @@ with tab_ai:
         "API description / requirements",
         value="Fetch a user and return the user's id, name and email.",
         key="ai_description",
-        help="Describe the expected API behaviour and business rules.",
     )
 
     ai_fields_text = st.text_input(
@@ -572,67 +507,55 @@ with tab_ai:
     )
 
     if st.button("✨ Generate Test Cases", type="primary"):
-        ai_fields = [
-            field.strip()
-            for field in ai_fields_text.split(",")
-            if field.strip()
-        ]
-
-        if not ai_endpoint.strip().startswith(
-            ("http://", "https://")
-        ):
+        if not ai_endpoint.strip().startswith(("http://", "https://")):
             st.error("Enter a valid HTTP or HTTPS endpoint.")
         else:
-            try:
-                with st.spinner("Generating test cases..."):
-                    try:
-                        cases, generation_mode = generate_ai_test_cases(
-                            endpoint=ai_endpoint.strip(),
-                            method=ai_method,
-                            description=ai_description.strip(),
-                            required_fields=ai_fields,
-                            count=int(ai_count),
-                        )
+            ai_fields = [
+                field.strip()
+                for field in ai_fields_text.split(",")
+                if field.strip()
+            ]
 
-                    except Exception as api_error:
-                        # Any API failure falls back to free templates.
-                        cases = generate_template_test_cases(
-                            endpoint=ai_endpoint.strip(),
-                            method=ai_method,
-                            description=ai_description.strip(),
-                            required_fields=ai_fields,
-                            count=int(ai_count),
-                        )
-                        generation_mode = "Free template fallback"
-                        fallback_reason = (
-                            f"{type(api_error).__name__}: {api_error}"
-                        )
-                    else:
-                        fallback_reason = None
+            fallback_reason = None
 
-                st.session_state.generated_test_cases = cases
-
-                if generation_mode == "OpenAI AI generation":
-                    st.success(
-                        f"Generated {len(cases)} test cases using OpenAI."
+            with st.spinner("Generating test cases..."):
+                try:
+                    cases, generation_mode = generate_ai_test_cases(
+                        endpoint=ai_endpoint.strip(),
+                        method=ai_method,
+                        description=ai_description.strip(),
+                        required_fields=ai_fields,
+                        count=int(ai_count),
                     )
-                else:
-                    st.warning(
-                        f"Generated {len(cases)} free template-based "
-                        "test cases. OpenAI was not used."
+                except Exception as exc:
+                    cases = generate_template_test_cases(
+                        endpoint=ai_endpoint.strip(),
+                        method=ai_method,
+                        description=ai_description.strip(),
+                        required_fields=ai_fields,
+                        count=int(ai_count),
                     )
-                    if fallback_reason:
-                        st.caption(
-                            "Fallback reason: " + fallback_reason
-                        )
+                    generation_mode = "Free template fallback"
+                    fallback_reason = f"{type(exc).__name__}: {exc}"
 
-                st.caption(f"Generation mode: {generation_mode}")
+            st.session_state.generated_test_cases = cases
+            st.session_state.execution_results = []
+            st.session_state.generation_mode = generation_mode
 
-            except Exception as exc:
-                st.error(f"Test case generation failed: {exc}")
+            if generation_mode == "OpenAI AI generation":
+                st.success(f"Generated {len(cases)} AI test cases.")
+            else:
+                st.warning(
+                    f"Generated {len(cases)} template-based test cases."
+                )
+                if fallback_reason:
+                    st.caption("Fallback reason: " + fallback_reason)
 
-    # Show generated cases and download buttons.
+            st.caption(f"Generation mode: {generation_mode}")
+
+    # Display generated cases and execution controls.
     if st.session_state.generated_test_cases:
+        st.divider()
         st.subheader("Generated Test Cases")
 
         cases_df = pd.DataFrame(
@@ -646,6 +569,7 @@ with tab_ai:
             data=cases_df.to_csv(index=False).encode("utf-8-sig"),
             file_name="ai_generated_test_cases.csv",
             mime="text/csv",
+            key="download_cases_csv",
         )
 
         st.download_button(
@@ -657,20 +581,24 @@ with tab_ai:
             ).encode("utf-8"),
             file_name="ai_generated_test_cases.json",
             mime="application/json",
+            key="download_cases_json",
         )
 
-        
         st.divider()
         st.subheader("▶️ Execute Test Cases")
 
         st.warning(
-            "This first version runs each generated case against "
-            "the same endpoint using the selected HTTP method and "
-            "validates HTTP status and required response fields. "
-            "It does not yet implement scenario-specific negative tests."
+            "This initial runner sends each case to the same endpoint "
+            "with the selected HTTP method and validates HTTP status "
+            "and required response fields. It does not yet perform "
+            "scenario-specific negative tests."
         )
 
-        if st.button("▶️ Run All Test Cases", type="primary"):
+        if st.button(
+            "▶️ Run All Test Cases",
+            type="primary",
+            key="run_all_test_cases",
+        ):
             execution_results = []
 
             fields_to_check = [
@@ -679,50 +607,75 @@ with tab_ai:
                 if field.strip()
             ]
 
-            with st.spinner("Executing API test cases..."):
-                progress = st.progress(0)
+            cases_to_run = st.session_state.generated_test_cases
 
-                for index, case in enumerate(
-                    st.session_state.generated_test_cases
-                ):
-                    result = run_api_test_case(
-                        test_case=case,
-                        url=ai_endpoint.strip(),
-                        method=ai_method,
-                        required_fields=fields_to_check,
-                        timeout=float(timeout),
-                        expected_status=int(expected_status),
+            progress = st.progress(0)
+
+            with st.spinner("Executing API test cases..."):
+                for index, case in enumerate(cases_to_run):
+                    try:
+                        result = run_api_test_case(
+                            test_case=case,
+                            url=ai_endpoint.strip(),
+                            method=ai_method,
+                            required_fields=fields_to_check,
+                            timeout=float(timeout),
+                            expected_status=int(expected_status),
+                        )
+
+                        if not isinstance(result, dict):
+                            result = {
+                                "status": "FAIL",
+                                "message": "Runner returned an invalid result.",
+                            }
+                        else:
+                            result = dict(result)
+
+                    except Exception as exc:
+                        result = {
+                            "status": "FAIL",
+                            "message": f"{type(exc).__name__}: {exc}",
+                            "status_code": None,
+                            "response_time_ms": None,
+                        }
+
+                    result["test_id"] = case.get(
+                        "test_case_id",
+                        f"TC{index + 1:03d}",
                     )
+                    result["scenario"] = case.get("scenario", "Test case")
+                    result.setdefault("status", "FAIL")
+                    result.setdefault("status_code", None)
+                    result.setdefault("response_time_ms", None)
+                    result.setdefault("message", "")
 
                     execution_results.append(result)
-                    progress.progress(
-                        (index + 1)
-                        / len(st.session_state.generated_test_cases)
-                    )
+                    progress.progress((index + 1) / len(cases_to_run))
 
-            st.session_state["execution_results"] = execution_results
+            st.session_state.execution_results = execution_results
+
+        # Results are shown after execution and remain visible on reruns.
+        if st.session_state.execution_results:
+            results = st.session_state.execution_results
 
             passed = sum(
-                item["status"] == "PASS"
-                for item in execution_results
+                str(item.get("status", "")).upper() == "PASS"
+                for item in results
             )
-            failed = len(execution_results) - passed
+            failed = len(results) - passed
+
+            st.subheader("📊 Execution Summary")
 
             col1, col2, col3 = st.columns(3)
-            col1.metric("Total Executed", len(execution_results))
+            col1.metric("Total Executed", len(results))
             col2.metric("PASS", passed)
             col3.metric("FAIL", failed)
 
-        if st.session_state.get("execution_results"):
+            results_df = pd.DataFrame(results)
             st.subheader("Execution Results")
 
-            results_df = pd.DataFrame(
-                st.session_state["execution_results"]
-            )
-
             display_columns = [
-                column
-                for column in [
+                column for column in [
                     "test_id",
                     "scenario",
                     "status",
@@ -745,27 +698,40 @@ with tab_ai:
                 ).encode("utf-8-sig"),
                 file_name="api_execution_results.csv",
                 mime="text/csv",
+                key="download_results_csv",
             )
 
             st.download_button(
                 "⬇️ Download Execution Results (JSON)",
                 data=json.dumps(
-                    st.session_state["execution_results"],
+                    results,
                     indent=2,
                     ensure_ascii=False,
                     default=str,
                 ).encode("utf-8"),
                 file_name="api_execution_results.json",
                 mime="application/json",
+                key="download_results_json",
             )
 
-        st.caption(
-            "These are test definitions only. They have not been "
-            "executed against the API."
-        )
+            st.download_button(
+                "⬇️ Download Execution Report (HTML)",
+                data=build_html_report(results).encode("utf-8"),
+                file_name="api_execution_report.html",
+                mime="text/html",
+                key="download_results_html",
+            )
+
+            st.caption(
+                "PASS/FAIL reflects the validations implemented by "
+                "the current API runner, not every scenario described "
+                "in the generated test case."
+            )
 
 
-# -------------------- TEST HISTORY AND REPORTS --------------------
+# =========================================================
+# TAB 3: TEST HISTORY AND REPORTS
+# =========================================================
 
 with tab_history:
     st.subheader("📊 Test Summary")
@@ -775,7 +741,8 @@ with tab_history:
     if history:
         total = len(history)
         passed = sum(
-            item.get("status") == "PASS" for item in history
+            item.get("status") == "PASS"
+            for item in history
         )
         failed = total - passed
 
@@ -786,51 +753,50 @@ with tab_history:
 
         st.subheader("Test History")
 
-        df = pd.DataFrame(history)
-        st.dataframe(df, use_container_width=True)
+        history_df = pd.DataFrame(history)
+        st.dataframe(history_df, use_container_width=True)
 
-        csv_data = df.to_csv(index=False).encode("utf-8-sig")
+        st.subheader("📥 Download History Reports")
 
-        json_data = json.dumps(
-            history,
-            indent=2,
-            ensure_ascii=False,
-            default=str,
-        ).encode("utf-8")
+        col1, col2, col3 = st.columns(3)
 
-        html_data = build_html_report(history).encode("utf-8")
-
-        st.subheader("📥 Download Reports")
-
-        c1, c2, c3 = st.columns(3)
-
-        c1.download_button(
+        col1.download_button(
             "Download CSV",
-            data=csv_data,
+            data=history_df.to_csv(
+                index=False
+            ).encode("utf-8-sig"),
             file_name="api_test_report.csv",
             mime="text/csv",
+            key="history_csv",
         )
 
-        c2.download_button(
+        col2.download_button(
             "Download JSON",
-            data=json_data,
+            data=json.dumps(
+                history,
+                indent=2,
+                ensure_ascii=False,
+                default=str,
+            ).encode("utf-8"),
             file_name="api_test_report.json",
             mime="application/json",
+            key="history_json",
         )
 
-        c3.download_button(
+        col3.download_button(
             "Download HTML",
-            data=html_data,
+            data=build_html_report(history).encode("utf-8"),
             file_name="api_test_report.html",
             mime="text/html",
+            key="history_html",
         )
 
-        if st.button("Clear Test History"):
+        if st.button("🗑️ Clear Test History"):
             st.session_state.api_test_history = []
             st.rerun()
 
     else:
-        st.info("No API tests have been run in this session yet.")
+        st.info("No live API tests have been run in this session yet.")
 
     if st.session_state.generated_test_cases:
         st.divider()
