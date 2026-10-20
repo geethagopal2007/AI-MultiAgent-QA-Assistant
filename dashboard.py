@@ -324,8 +324,9 @@ def build_html_report(results):
             "</tr>"
         )
 
-    passed = sum(item.get("status") == "PASS" for item in results)
-    failed = len(results) - passed
+    passed = sum(str(item.get("status", "")).upper() == "PASS" for item in results)
+    failed = sum(str(item.get("status", "")).upper() == "FAIL" for item in results)
+    blocked = sum(str(item.get("status", "")).upper() == "BLOCKED" for item in results)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -341,7 +342,7 @@ th {{ background: #17365d; color: white; }}
 </head>
 <body>
 <h1>API Test Execution Report</h1>
-<p>Total: {len(results)} | Passed: {passed} | Failed: {failed}</p>
+<p>Total: {len(results)} | PASS: {passed} | FAIL: {failed} | BLOCKED: {blocked}</p>
 <table>
 <thead>
 <tr>
@@ -658,18 +659,25 @@ with tab_ai:
         if st.session_state.execution_results:
             results = st.session_state.execution_results
 
-            passed = sum(
-                str(item.get("status", "")).upper() == "PASS"
+            statuses = [
+                str(item.get("status", "FAIL")).upper()
                 for item in results
-            )
-            failed = len(results) - passed
+            ]
+            passed = statuses.count("PASS")
+            failed = statuses.count("FAIL")
+            blocked = statuses.count("BLOCKED")
+            other = len(statuses) - passed - failed - blocked
 
             st.subheader("📊 Execution Summary")
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             col1.metric("Total Executed", len(results))
             col2.metric("PASS", passed)
             col3.metric("FAIL", failed)
+            col4.metric("BLOCKED", blocked)
+
+            if other:
+                st.caption(f"Other/unclassified statuses: {other}")
 
             results_df = pd.DataFrame(results)
             st.subheader("Execution Results")
@@ -740,16 +748,19 @@ with tab_history:
 
     if history:
         total = len(history)
-        passed = sum(
-            item.get("status") == "PASS"
+        statuses = [
+            str(item.get("status", "FAIL")).upper()
             for item in history
-        )
-        failed = total - passed
+        ]
+        passed = statuses.count("PASS")
+        failed = statuses.count("FAIL")
+        blocked = statuses.count("BLOCKED")
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Tests", total)
         col2.metric("Passed", passed)
         col3.metric("Failed", failed)
+        col4.metric("Blocked", blocked)
 
         st.subheader("Test History")
 
